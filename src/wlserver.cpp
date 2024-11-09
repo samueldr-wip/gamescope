@@ -306,6 +306,22 @@ static void wlserver_handle_key(struct wl_listener *listener, void *data)
 	}
 #endif
 
+	uint32_t modifiers = wlr_keyboard_get_modifiers(keyboard->wlr);
+
+	// Provide a keyboard combo for the Steam Overlay
+	// We can sneakily sneak in the the sneaky event through pretending this is another key...
+	if (
+#ifdef SYNTHETIC_OVERLAY_ALLOW_SHIFT_TAB
+		// Disabled by default, imo it's a bad key bind.
+		// You could be "shifting" in a game, while trying to access something on "tab" like a player list...
+		// This is only left as a demonstration for hooking on a different key bind.
+		((modifiers & WLR_MODIFIER_SHIFT) && event->keycode == KEY_TAB) ||
+#endif
+		((modifiers & WLR_MODIFIER_LOGO) && event->keycode == KEY_ESC)
+	) {
+		event->keycode = KEY_F21;
+	}
+
 	bool forbidden_key =
 		// NOTE: using the keysym for F22 seems to fail and we're getting `XKB_KEY_XF86TouchpadOn` instead...
 		// It should be safe to match on keycode for our already quite synthetic F22 event.
