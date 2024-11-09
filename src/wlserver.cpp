@@ -309,6 +309,7 @@ static void wlserver_handle_key(struct wl_listener *listener, void *data)
 	bool forbidden_key =
 		// NOTE: using the keysym for F22 seems to fail and we're getting `XKB_KEY_XF86TouchpadOn` instead...
 		// It should be safe to match on keycode for our already quite synthetic F22 event.
+		event->keycode == KEY_F21 || /* Steam Overlay Synthesis */
 		event->keycode == KEY_F22 || /* QAM Synthesis */
 		keysym == XKB_KEY_XF86AudioLowerVolume ||
 		keysym == XKB_KEY_XF86AudioRaiseVolume ||
@@ -323,16 +324,22 @@ static void wlserver_handle_key(struct wl_listener *listener, void *data)
 			wlserver_keyboardfocus( new_kb_surf, false );
 			wlr_seat_set_keyboard( wlserver.wlr.seat, keyboard->wlr );
 
-			if (event->keycode == KEY_F22)
+			if (event->keycode == KEY_F21 || event->keycode == KEY_F22)
 			{
-				// Synthesize the [2] out of [CTRL]+[2]
-				event->keycode = KEY_2;
+				if (event->keycode == KEY_F21) {
+					// Synthesize the [1] out of [CTRL]+[1]
+					event->keycode = KEY_1;
+				}
+				else {
+					// Synthesize the [2] out of [CTRL]+[2]
+					event->keycode = KEY_2;
+				}
 
-				// Synthesize the [CTRL] out of [CTRL]+[2]
+				// Synthesize the [CTRL] out of [CTRL]+[_]
 				// (Defaults to no modifiers held; meaning the synthesized CTRL is released...)
 				wlr_keyboard_modifiers synthesized_modifiers = wlr_keyboard_modifiers{0};
 				if (event->state == WL_KEYBOARD_KEY_STATE_PRESSED) {
-					// (... and on F22 being held, CTRL is also held)
+					// (... and on synthesized presses being held, CTRL is also held)
 					synthesized_modifiers.depressed = WLR_MODIFIER_CTRL;
 				}
 				// Send the synthesized modifiers
